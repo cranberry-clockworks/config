@@ -955,16 +955,14 @@ vim.api.nvim_create_autocmd("FileType", {
   pattern = "cs",
   callback = function()
     -- Format entire buffer
-    vim.keymap.set("n", "<leader>lf", "<cmd>!dotnet csharpier %<CR>", {
+    vim.keymap.set("n", "<leader>lf", "<cmd>!dotnet csharpier format \"%\"<CR>", {
       buffer = true,
       desc = "Override [L]SP for [F]ormat file with csharpier",
     })
   end,
 })
 
--- Split lines
-
--- Put this in your init.lua or a sourced Lua file
+-- Split the lines
 vim.keymap.set("n", "<leader>sl", function()
   local char = vim.fn.input("Split by: ")
   if char ~= "" then
