@@ -1,3 +1,5 @@
+vim.loader.enable()
+
 -- Behaviours
 vim.opt.completeopt = { "menuone", "noinsert", "noselect" }
 vim.o.pumheight = 15
@@ -9,7 +11,6 @@ vim.opt.wrap = false
 vim.opt.title = true
 vim.opt.breakindent = true
 vim.opt.scrolloff = 8
-vim.opt.mouse = "a"
 
 -- Decrease update times
 vim.opt.updatetime = 250
@@ -30,7 +31,6 @@ vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 
 -- Appearance
-vim.opt.termguicolors = true
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.signcolumn = "yes"
@@ -54,7 +54,7 @@ vim.g.maplocalleader = " "
 
 -- Lazy bootstrap
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not (vim.uv or vim.loop).fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
   local lazyrepo = "https://github.com/folke/lazy.nvim.git"
   local out = vim.fn.system({
     "git",
@@ -116,10 +116,16 @@ end
 require("lazy").setup({
   {
     "cranberry-clockworks/coal.nvim",
+        dependencies = {
+            "darkvoid-theme/darkvoid.nvim",
+            "rose-pine/neovim",
+        },
     lazy = false,
     priority = 1000,
     config = function()
-      vim.cmd("colorscheme coal")
+      vim.opt.termguicolors = true
+      vim.o.background = "light"
+      vim.cmd.colorscheme("rose-pine")
     end,
   },
   {
@@ -431,13 +437,6 @@ require("lazy").setup({
         },
       },
     },
-  },
-  {
-    "echasnovski/mini.comment",
-    version = "*",
-    config = function()
-      require("mini.comment").setup()
-    end,
   },
   {
     "mason-org/mason.nvim",
@@ -971,5 +970,49 @@ vim.keymap.set("n", "<leader>sl", function()
   end
 end, { desc = "Split current line by input chars" })
 
+-- Jump between errors
+vim.keymap.set('n', ']e', function()
+    vim.diagnostic.jump({
+        count = 1,
+        severity = vim.diagnostic.severity.ERROR,
+        wrap = true
+    })
+end, { desc = 'Next diagnostic error' })
+
+vim.keymap.set('n', '[e', function()
+    vim.diagnostic.jump({
+        count = -1,
+        severity = vim.diagnostic.severity.ERROR,
+        wrap = true
+    })
+end, { desc = 'Next diagnostic error' })
+
+-- Jump between warnings
+vim.keymap.set('n', ']w', function()
+    vim.diagnostic.jump({
+        count = 1,
+        severity = vim.diagnostic.severity.WARNING,
+        wrap = true
+    })
+end, { desc = 'Next diagnostic error' })
+
+vim.keymap.set('n', '[w', function()
+    vim.diagnostic.jump({
+        count = -1,
+        severity = vim.diagnostic.severity.WARNING,
+        wrap = true
+    })
+end, { desc = 'Next diagnostic error' })
+
+-- View git conflict markers
+vim.keymap.set("n", "<leader>lc", function()
+  local ok, _ = pcall(vim.cmd, "vimgrep /^[<=>]\\{7\\}/ %")
+
+  if ok then
+    vim.cmd("copen") -- Open the list if matches found
+  else
+    vim.notify("No conflicts found", vim.log.levels.INFO)
+  end
+end, { desc = "[l]ist [c]onflict markers" })
 
 require("dotnet-tools").setup()
