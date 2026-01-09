@@ -1,5 +1,15 @@
 vim.loader.enable()
 
+local function check_dependency(exec)
+  if vim.fn.executable(exec) == 0 then
+    vim.notify(
+      exec .. "is missing",
+      vim.log.levels.ERROR,
+      { title = "System Requirements", timeout = 10000 }
+    )
+  end
+end
+
 -- Behaviours
 vim.opt.completeopt = { "menuone", "noinsert", "noselect" }
 vim.o.pumheight = 15
@@ -15,7 +25,7 @@ vim.opt.scrolloff = 8
 -- Decrease update times
 vim.opt.updatetime = 250
 
--- Seraching
+-- Searching
 vim.opt.grepprg = "rg --vimgrep --smart-case --no-heading"
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
@@ -48,7 +58,11 @@ vim.g.netrw_banner = 0
 vim.g.netrw_bufsettings = "noma nomod nobl nowrap ro nu rnu"
 vim.g.netrw_list_hide = "^\\./$"
 
--- Keymaps
+-- Spellcheck
+vim.wo.spell = true
+vim.bo.spelllang = "en,nb,ru"
+
+-- Key Maps
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
@@ -76,72 +90,94 @@ if not vim.uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
--- helper to rename both symbol and file, then close the old buffer
-local function lsp_rename_and_file()
-  -- capture the current buffer so we can delete it later
-  local old_buf = vim.api.nvim_get_current_buf()
-  local old_name = vim.fn.expand("<cword>")
+local profile = os.getenv("NVIM_PROFILE") or "base"
+vim.g.profile = profile
+local profiles = {
+  base = {
+    ts = {
+      "lua",
+      "markdown",
+      "markdown_inline",
+      "vimdoc",
+      "yaml",
+      "json",
+    },
+    ls = {},
+  },
+  home = {
+    ts = {
+      "lua",
+      "markdown",
+      "markdown_inline",
+      "vimdoc",
+      "yaml",
+      "json",
+      "c_sharp",
+      "beancount",
+      "make",
+    },
+    ls = {
+      "lua_ls",
+      "stylua",
+    },
+  },
+  work = {
+    ts = {
+      "lua",
+      "markdown",
+      "markdown_inline",
+      "vimdoc",
+      "yaml",
+      "json",
+      "c_sharp",
+      "javascript",
+      "typescript",
+      "css",
+      "bicep",
+      "make",
+    },
+    ls = {
+      "lua_ls",
+      "stylua",
+      "eslint",
+      "bicep",
+      "ts_ls",
+      "yamlls",
+    },
+  },
+}
 
-  vim.ui.input({ prompt = "New name: ", default = old_name }, function(new_name)
-    if not new_name or new_name == "" or new_name == old_name then
-      return
-    end
+check_dependency("rg")
+check_dependency("fzf")
 
-    -- 1) Rename symbol via LSP
-    vim.lsp.buf.rename(new_name)
-
-    -- 2) Compute new file path (preserve extension)
-    local old_path = vim.fn.expand("%:p")
-    local ext = vim.fn.expand("%:e")
-    local dir = vim.fn.expand("%:p:h")
-    local new_path =
-      string.format("%s/%s%s", dir, new_name, (ext ~= "" and "." .. ext or ""))
-
-    -- 3) Rename the file on disk
-    local ok, err = os.rename(old_path, new_path)
-    if not ok then
-      vim.notify("Error renaming file: " .. err, vim.log.levels.ERROR)
-      return
-    end
-
-    -- 4) Open the newly renamed file
-    vim.cmd("edit " .. vim.fn.fnameescape(new_path))
-
-    -- 5) Close the old buffer
-    --    force=true in case it's still listed or modified
-    vim.api.nvim_buf_delete(old_buf, { force = true })
-  end)
-end
-
+-- Plugins
 require("lazy").setup({
   {
     "cranberry-clockworks/coal.nvim",
-        dependencies = {
-            "darkvoid-theme/darkvoid.nvim",
-            "rose-pine/neovim",
-        },
+    enabled = profile == "base" or profile == "home",
     lazy = false,
     priority = 1000,
     config = function()
-      vim.opt.termguicolors = true
+      vim.cmd.colorscheme("coal")
+    end,
+  },
+  {
+    "catppuccin/nvim",
+    enabled = profile == "work",
+    lazy = false,
+    priority = 1000,
+    config = function()
       vim.o.background = "light"
-      vim.cmd.colorscheme("rose-pine")
+      vim.cmd.colorscheme("catppuccin")
     end,
   },
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
+    lazy = false,
     opts = {
       auto_install = true,
-      ensure_installed = {
-        "lua",
-        "elixir",
-        "c_sharp",
-        "javascript",
-        "typescript",
-        "markdown",
-        "markdown_inline",
-      },
+      ensure_installed = profiles[profile].ts,
       highlight = { enable = true },
       indent = { enable = true },
       incremental_selection = { enable = true },
@@ -173,9 +209,7 @@ require("lazy").setup({
   {
     "kylechui/nvim-surround",
     event = "VeryLazy",
-    config = function()
-      require("nvim-surround").setup({})
-    end,
+    opts = {},
   },
   {
     "stevearc/oil.nvim",
@@ -208,6 +242,7 @@ require("lazy").setup({
     "nvim-telescope/telescope.nvim",
     branch = "0.1.x",
     dependencies = {
+      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
       "nvim-lua/plenary.nvim",
       "cranberry-knight/telescope-compiler.nvim",
       "debugloop/telescope-undo.nvim",
@@ -421,6 +456,7 @@ require("lazy").setup({
   },
   {
     "danymat/neogen",
+    enabled = profile == "home" or profile == "work",
     keys = {
       {
         "<leader>ng",
@@ -451,9 +487,7 @@ require("lazy").setup({
   {
     "mason-org/mason-lspconfig.nvim",
     opts = {
-      ensure_installed = {
-        "lua_ls",
-      },
+      ensure_installed = profiles[profile].ls,
     },
     dependencies = {
       "mason-org/mason.nvim",
@@ -461,14 +495,16 @@ require("lazy").setup({
     },
   },
   {
-    "L3MON4D3/LuaSnip",
-    version = "v2.*",
-    build = "make install_jsregexp",
+    "j-hui/fidget.nvim",
+    opts = {
+      notification = {
+        override_vim_notify = true,
+      },
+    },
   },
   {
     "saghen/blink.cmp",
     dependencies = { "rafamadriz/friendly-snippets" },
-
     version = "1.*",
     config = function()
       local kind_icons = {
@@ -540,57 +576,12 @@ require("lazy").setup({
   },
   {
     "seblyng/roslyn.nvim",
+    enabled = profile == "home" or profile == "work",
     ft = { "cs" },
     dependencies = {
       "j-hui/fidget.nvim",
-      --         'tris203/rzls.nvim',
-      --         config = function()
-      --             ---@diagnostic disable-next-line: missing-fields
-      --             require('rzls').setup {}
-      --         end,
-      --     },
     },
-    config = function()
-      require("roslyn").setup({
-        --     args = {
-        --         '--stdio',
-        --         '--logLevel=Information',
-        --         '--extensionLogDirectory=' .. vim.fs.dirname(vim.lsp.get_log_path()),
-        --         '--razorSourceGenerator='
-        --         .. vim.fs.joinpath(vim.fn.stdpath 'data' --[[@as string]], 'mason', 'packages', 'roslyn', 'libexec', 'Microsoft.CodeAnalysis.Razor.Compiler.dll'),
-        --         '--razorDesignTimePath=' .. vim.fs.joinpath(
-        --             vim.fn.stdpath 'data' --[[@as string]],
-        --             'mason',
-        --             'packages',
-        --             'rzls',
-        --             'libexec',
-        --             'Targets',
-        --             'Microsoft.NET.Sdk.Razor.DesignTime.targets'
-        --         ),
-        --     },
-        --     ---@diagnostic disable-next-line: missing-fields
-        config = {
-          -- handlers = require 'rzls.roslyn_handlers',
-        },
-      })
-    end,
-    -- init = function()
-    --     -- we add the razor filetypes before the plugin loads
-    --     vim.filetype.add {
-    --         extension = {
-    --             razor = 'razor',
-    --             cshtml = 'razor',
-    --         },
-    --     }
-    -- end,
-  },
-  {
-    "j-hui/fidget.nvim",
-    opts = {
-      notification = {
-        override_vim_notify = true,
-      },
-    },
+    opts = {},
   },
   {
     "neovim/nvim-lspconfig",
@@ -644,21 +635,8 @@ require("lazy").setup({
         end,
         desc = "[G]o to [d]efiniton",
       },
-      {
-        "grf",
-        lsp_rename_and_file,
-        desc = "LSP [R]ename symbol with the [F]ile name",
-      },
     },
     config = function()
-      -- Add bicep file type detection
-      vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-        pattern = "*.bicep",
-        callback = function()
-          vim.bo.filetype = "bicep"
-        end,
-      })
-
       vim.lsp.config("lua_ls", {
         settings = {
           Lua = {
@@ -679,10 +657,6 @@ require("lazy").setup({
         end,
       })
 
-      vim.lsp.config("bicep", {
-        cmd = { vim.fn.stdpath("data") .. "/mason/bin/bicep-lsp" },
-      })
-
       vim.diagnostic.config({ virtual_text = true })
     end,
   },
@@ -692,6 +666,7 @@ require("lazy").setup({
       "nvim-neotest/nvim-nio",
       "rcarriga/nvim-dap-ui",
     },
+    enabled = profile == "home" or profile == "work",
     config = function()
       local dap = require("dap")
       local ui = require("dapui")
@@ -742,9 +717,6 @@ require("lazy").setup({
             "-c",
             "Laerdal.Local",
           },
-          -- env = {
-          --   ASPNETCORE_ENVIRONMENT = "Development",
-          -- },
         },
       }
     end,
@@ -823,6 +795,7 @@ require("lazy").setup({
   },
   {
     "zbirenbaum/copilot.lua",
+    enabled = profile == "work",
     lazy = false,
     opts = {
       suggestion = {
@@ -844,6 +817,7 @@ require("lazy").setup({
       "nvim-treesitter/nvim-treesitter",
       "Issafalcon/neotest-dotnet",
     },
+    enabled = profile == "home" or profile == "work",
     opts = function()
       return {
         adapters = {
@@ -886,19 +860,23 @@ require("lazy").setup({
       },
     },
   },
+}, {
+  lockfile = vim.fn.stdpath("config") .. "/lazy-lock-" .. profile .. ".json",
 })
 
-vim.filetype.add({})
+vim.filetype.add({
+  extension = {
+    bicep = "bicep",
+    razor = "razor",
+    cshtml = "razor",
+  },
+})
 
-local function map(key, action, description)
-  vim.keymap.set("n", key, action, { desc = description })
-end
-
--- Keymaps
+-- Key Maps
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- Generic
-map("<leader>tsc", function()
+vim.keymap.set("n", "<leader>tsc", function()
   if vim.wo.spell then
     vim.wo.spell = false
     vim.notify("Disable spellcheck")
@@ -906,58 +884,56 @@ map("<leader>tsc", function()
   end
 
   vim.wo.spell = true
-  vim.bo.spelllang = "en,ru"
   vim.notify("Enable spellcheck")
-end, "[t]oggle [s]pell [c]heck")
+end, { desc = "[t]oggle [s]pell [c]heck" })
 
-map("<leader>thw", function()
+vim.keymap.set("n", "<leader>thw", function()
   local width = vim.call("input", "Enter new hard wrap text width: ")
   vim.opt.wrap = false
   vim.opt.textwidth = tonumber(width)
   vim.opt.colorcolumn = tostring(width)
-end, "[t]oggle [h]ard [w]rap")
+end, { desc = "[t]oggle [h]ard [w]rap" })
 
-map("<leader>tsw", function()
+vim.api.nvim_create_user_command("EnableSoftWrap", function()
+  vim.wo.wrap = true
+  vim.wo.linebreak = true
+  vim.wo.breakindent = true
+  vim.wo.showbreak = "↪ "
+  vim.opt.textwidth = tonumber(0)
+  vim.opt.colorcolumn = tostring(0)
+end, { nargs = 0, force = true })
+
+vim.api.nvim_create_user_command("DisableSoftWrap", function()
+  vim.wo.linebreak = false
+  vim.wo.breakindent = false
+  vim.wo.showbreak = ""
+end, { nargs = 0, force = true })
+
+vim.keymap.set("n", "<leader>tsw", function()
   vim.wo.wrap = not vim.wo.wrap
   if vim.wo.wrap then
-    vim.wo.linebreak   = true
-    vim.wo.breakindent = true
-    vim.wo.showbreak = "↪ "
-    vim.opt.textwidth = tonumber(0)
-    vim.opt.colorcolumn = tostring(0)
+    vim.cmd("EnableSoftWrap")
     vim.notify("Enable text soft wrap")
   else
-    vim.wo.linebreak   = false
-    vim.wo.breakindent = false
-    vim.wo.showbreak = ""
+    vim.cmd("DisableSoftWrap")
     vim.notify("Disable soft wrap")
   end
-end, "[t]oggle [s]oft [w]rap")
-
-vim.api.nvim_create_autocmd({ "InsertLeave" }, {
-  pattern = "*",
-  callback = function()
-    local clients = vim.lsp.get_clients({ name = "roslyn" })
-    if not clients or #clients == 0 then
-      return
-    end
-
-    local buffers = vim.lsp.get_buffers_by_client_id(clients[1].id)
-    for _, buf in ipairs(buffers) do
-      vim.lsp.util._refresh("textDocument/diagnostic", { bufnr = buf })
-    end
-  end,
-})
+end, { desc = "[t]oggle [s]oft [w]rap" })
 
 -- Override default LSP formatting for C# to use csharpier
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "cs",
   callback = function()
     -- Format entire buffer
-    vim.keymap.set("n", "<leader>lf", "<cmd>!dotnet csharpier format \"%\"<CR>", {
-      buffer = true,
-      desc = "Override [L]SP for [F]ormat file with csharpier",
-    })
+    vim.keymap.set(
+      "n",
+      "<leader>lf",
+      "<cmd>!dotnet csharpier format \"%\"<CR>",
+      {
+        buffer = true,
+        desc = "Override [L]SP for [F]ormat file with csharpier",
+      }
+    )
   end,
 })
 
@@ -971,38 +947,38 @@ vim.keymap.set("n", "<leader>sl", function()
 end, { desc = "Split current line by input chars" })
 
 -- Jump between errors
-vim.keymap.set('n', ']e', function()
-    vim.diagnostic.jump({
-        count = 1,
-        severity = vim.diagnostic.severity.ERROR,
-        wrap = true
-    })
-end, { desc = 'Next diagnostic error' })
+vim.keymap.set("n", "]e", function()
+  vim.diagnostic.jump({
+    count = 1,
+    severity = vim.diagnostic.severity.ERROR,
+    wrap = true,
+  })
+end, { desc = "Next diagnostic error" })
 
-vim.keymap.set('n', '[e', function()
-    vim.diagnostic.jump({
-        count = -1,
-        severity = vim.diagnostic.severity.ERROR,
-        wrap = true
-    })
-end, { desc = 'Next diagnostic error' })
+vim.keymap.set("n", "[e", function()
+  vim.diagnostic.jump({
+    count = -1,
+    severity = vim.diagnostic.severity.ERROR,
+    wrap = true,
+  })
+end, { desc = "Next diagnostic error" })
 
 -- Jump between warnings
-vim.keymap.set('n', ']w', function()
-    vim.diagnostic.jump({
-        count = 1,
-        severity = vim.diagnostic.severity.WARNING,
-        wrap = true
-    })
-end, { desc = 'Next diagnostic error' })
+vim.keymap.set("n", "]w", function()
+  vim.diagnostic.jump({
+    count = 1,
+    severity = vim.diagnostic.severity.WARNING,
+    wrap = true,
+  })
+end, { desc = "Next diagnostic error" })
 
-vim.keymap.set('n', '[w', function()
-    vim.diagnostic.jump({
-        count = -1,
-        severity = vim.diagnostic.severity.WARNING,
-        wrap = true
-    })
-end, { desc = 'Next diagnostic error' })
+vim.keymap.set("n", "[w", function()
+  vim.diagnostic.jump({
+    count = -1,
+    severity = vim.diagnostic.severity.WARNING,
+    wrap = true,
+  })
+end, { desc = "Next diagnostic error" })
 
 -- View git conflict markers
 vim.keymap.set("n", "<leader>lc", function()
@@ -1015,4 +991,6 @@ vim.keymap.set("n", "<leader>lc", function()
   end
 end, { desc = "[l]ist [c]onflict markers" })
 
-require("dotnet-tools").setup()
+if profile == "home" or profile == "work" then
+  require("dotnet-tools").setup()
+end
