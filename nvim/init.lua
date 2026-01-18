@@ -650,11 +650,11 @@ require("lazy").setup({
       })
 
       vim.lsp.config("beancount", {
-        root_dir = function(fname)
-          return vim.fs.dirname(
-            vim.fs.find("main.beancount", { path = fname, upward = true })[1]
-          )
-        end,
+        commands = { "beancount-language-server", "--stdio" },
+        root_markers = { "main.beancount", ".git" },
+        init_options = {
+            journal_file = "main.beancount",
+        }
       })
 
       vim.diagnostic.config({ virtual_text = true })
