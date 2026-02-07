@@ -860,6 +860,14 @@ require("lazy").setup({
       },
     },
   },
+  {
+      "folke/zen-mode.nvim",
+      opts = {
+         window = {
+           width = 80
+        }
+      }
+  }
 }, {
   lockfile = vim.fn.stdpath("config") .. "/lazy-lock-" .. profile .. ".json",
 })
