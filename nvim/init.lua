@@ -167,7 +167,10 @@ require("lazy").setup({
     lazy = false,
     priority = 1000,
     config = function()
-      vim.o.background = "light"
+      require("catppuccin").setup({
+        flavour = "mocha", -- latte, frappe, macchiato, mocha
+      })
+      vim.o.background = "dark"
       vim.cmd.colorscheme("catppuccin")
     end,
   },
@@ -653,8 +656,8 @@ require("lazy").setup({
         commands = { "beancount-language-server", "--stdio" },
         root_markers = { "main.beancount", ".git" },
         init_options = {
-            journal_file = "main.beancount",
-        }
+          journal_file = "main.beancount",
+        },
       })
 
       vim.diagnostic.config({ virtual_text = true })
@@ -809,6 +812,43 @@ require("lazy").setup({
     },
   },
   {
+    "ThePrimeagen/99",
+    enabled = profile == "work",
+    config = function()
+      local _99 = require("99")
+      local cwd = vim.uv.cwd()
+      local basename = vim.fs.basename(cwd)
+      _99.setup({
+        model = "github-copilot/gpt-5.3-codex",
+        logger = {
+          level = _99.DEBUG,
+          path = "/tmp/99/" .. basename .. ".99.debug",
+          print_on_error = true,
+        },
+        tmp_dir = "./.tmp",
+        completion = {
+          custom_rules = {
+            "~/.config/nvim/skills/",
+          },
+          files = {},
+          source = "native",
+        },
+        md_files = {
+          "AGENT.md",
+        },
+      })
+      vim.keymap.set("v", "<leader>9v", function()
+        _99.visual()
+      end)
+      vim.keymap.set("n", "<leader>9x", function()
+        _99.stop_all_requests()
+      end)
+      vim.keymap.set("n", "<leader>9s", function()
+        _99.search()
+      end)
+    end,
+  },
+  {
     "nvim-neotest/neotest",
     dependencies = {
       "nvim-neotest/nvim-nio",
@@ -861,13 +901,13 @@ require("lazy").setup({
     },
   },
   {
-      "folke/zen-mode.nvim",
-      opts = {
-         window = {
-           width = 80
-        }
-      }
-  }
+    "folke/zen-mode.nvim",
+    opts = {
+      window = {
+        width = 80,
+      },
+    },
+  },
 }, {
   lockfile = vim.fn.stdpath("config") .. "/lazy-lock-" .. profile .. ".json",
 })
