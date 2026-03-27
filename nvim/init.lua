@@ -154,7 +154,7 @@ check_dependency("fzf")
 require("lazy").setup({
   {
     "cranberry-clockworks/coal.nvim",
-    enabled = profile == "base" or profile == "home",
+    enabled = profile == "base",
     lazy = false,
     priority = 1000,
     config = function()
@@ -162,16 +162,13 @@ require("lazy").setup({
     end,
   },
   {
-    "catppuccin/nvim",
-    enabled = profile == "work",
+    "bluz71/vim-moonfly-colors",
+    enabled = profile == "work" or profile == "home",
     lazy = false,
     priority = 1000,
     config = function()
-      require("catppuccin").setup({
-        flavour = "mocha", -- latte, frappe, macchiato, mocha
-      })
       vim.o.background = "dark"
-      vim.cmd.colorscheme("catppuccin")
+      vim.cmd.colorscheme("moonfly")
     end,
   },
   {
