@@ -127,6 +127,7 @@ local profiles = {
     tools = {
       "stylua",
       "csharpier",
+      "roslyn",
     },
   },
   work = {
@@ -155,6 +156,7 @@ local profiles = {
     tools = {
       "stylua",
       "csharpier",
+      "roslyn",
     },
   },
 }
