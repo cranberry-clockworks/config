@@ -122,7 +122,6 @@ local profiles = {
     },
     ls = {
       "lua_ls",
-      "roslyn"
     },
     tools = {
       "stylua",
@@ -151,7 +150,6 @@ local profiles = {
       "bicep",
       "ts_ls",
       "yamlls",
-      "roslyn"
     },
     tools = {
       "stylua",
