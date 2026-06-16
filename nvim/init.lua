@@ -11,6 +11,7 @@ local function check_dependency(exec)
 end
 
 -- Behaviours
+vim.opt.autocomplete = true
 vim.opt.completeopt = { "menuone", "noinsert", "noselect" }
 vim.o.pumheight = 15
 
@@ -21,6 +22,8 @@ vim.opt.wrap = false
 vim.opt.title = true
 vim.opt.breakindent = true
 vim.opt.scrolloff = 8
+
+require("vim._core.ui2").enable()
 
 -- Decrease update times
 vim.opt.updatetime = 250
@@ -103,6 +106,7 @@ local profiles = {
       "json",
     },
     ls = {},
+    tools = {},
   },
   home = {
     ts = {
@@ -118,7 +122,10 @@ local profiles = {
     },
     ls = {
       "lua_ls",
+    },
+    tools = {
       "stylua",
+      "csharpier",
     },
   },
   work = {
@@ -138,11 +145,14 @@ local profiles = {
     },
     ls = {
       "lua_ls",
-      "stylua",
       "eslint",
       "bicep",
       "ts_ls",
       "yamlls",
+    },
+    tools = {
+      "stylua",
+      "csharpier",
     },
   },
 }
@@ -245,7 +255,6 @@ require("lazy").setup({
       { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
       "nvim-lua/plenary.nvim",
       "cranberry-knight/telescope-compiler.nvim",
-      "debugloop/telescope-undo.nvim",
     },
     keys = {
       {
@@ -325,13 +334,6 @@ require("lazy").setup({
         end,
         desc = "Browse [w]orkspace [s]ymbols",
       },
-      {
-        "<leader>fu",
-        function()
-          require("telescope").extensions.undo.undo()
-        end,
-        desc = "[f]ind entry in [u]ndo tree",
-      },
     },
     opts = {
       defaults = {
@@ -365,22 +367,6 @@ require("lazy").setup({
         git_status = {
           disable_devicons = true,
         },
-      },
-      extensions = {
-        undo = {},
-      },
-    },
-  },
-  {
-    "nvim-lualine/lualine.nvim",
-    dependencies = {
-      "kyazdani42/nvim-web-devicons",
-    },
-    opts = {
-      options = {
-        icons_enabled = false,
-        component_separators = { left = "", right = "" },
-        section_separators = { left = "", right = "" },
       },
     },
   },
@@ -488,178 +474,26 @@ require("lazy").setup({
     "mason-org/mason-lspconfig.nvim",
     opts = {
       ensure_installed = profiles[profile].ls,
+      automatic_enable = true,
     },
     dependencies = {
       "mason-org/mason.nvim",
-      "neovim/nvim-lspconfig",
     },
   },
   {
-    "j-hui/fidget.nvim",
+    "WhoIsSethDaniel/mason-tool-installer.nvim",
+    dependencies = { "mason-org/mason.nvim" },
     opts = {
-      notification = {
-        override_vim_notify = true,
-      },
+      ensure_installed = profiles[profile].tools,
     },
-  },
-  {
-    "saghen/blink.cmp",
-    dependencies = { "rafamadriz/friendly-snippets" },
-    version = "1.*",
-    config = function()
-      local kind_icons = {
-        array = { glyph = "∥", hl = "CmpItemKindTypeParameter" },
-        boolean = { glyph = "⊤", hl = "CmpItemKindTypeParameter" },
-        class = { glyph = "ℂ", hl = "CmpItemKindClass" },
-        color = { glyph = "■", hl = "CmpItemKindColor" },
-        constant = { glyph = "Ω", hl = "CmpItemKindConstant" },
-        constructor = { glyph = "∇", hl = "CmpItemKindConstructor" },
-        enum = { glyph = "Є", hl = "CmpItemKindEnum" },
-        enummember = { glyph = "∈", hl = "CmpItemKindEnumMember" },
-        event = { glyph = "★", hl = "CmpItemKindEvent" },
-        field = { glyph = "⋗", hl = "CmpItemKindField" },
-        file = { glyph = "▢", hl = "CmpItemKindFile" },
-        folder = { glyph = "▣", hl = "CmpItemKindFolder" },
-        ["function"] = { glyph = "λ", hl = "CmpItemKindFunction" },
-        interface = { glyph = "⊡", hl = "CmpItemKindInterface" },
-        key = { glyph = "✦", hl = "CmpItemKindProperty" },
-        keyword = { glyph = "∀", hl = "CmpItemKindKeyword" },
-        method = { glyph = "ƒ", hl = "CmpItemKindMethod" },
-        module = { glyph = "ⓜ", hl = "CmpItemKindModule" },
-        namespace = { glyph = "Ⓝ", hl = "CmpItemKindModule" },
-        null = { glyph = "∅", hl = "CmpItemKindConstant" },
-        number = { glyph = "#", hl = "CmpItemKindConstant" },
-        object = { glyph = "⊖", hl = "CmpItemKindVariable" },
-        operator = { glyph = "⊕", hl = "CmpItemKindOperator" },
-        package = { glyph = "⊞", hl = "CmpItemKindModule" },
-        parameter = { glyph = "ρ", hl = "CmpItemKindParameter" },
-        property = { glyph = "π", hl = "CmpItemKindProperty" },
-        reference = { glyph = "→", hl = "CmpItemKindReference" },
-        snippet = { glyph = "…", hl = "CmpItemKindSnippet" },
-        string = { glyph = "❝", hl = "CmpItemKindString" },
-        struct = { glyph = "§", hl = "CmpItemKindStruct" },
-        text = { glyph = "𝓣", hl = "CmpItemKindText" },
-        typeparameter = { glyph = "τ", hl = "CmpItemKindTypeParameter" },
-        unit = { glyph = "µ", hl = "CmpItemKindUnit" },
-        value = { glyph = "ν", hl = "CmpItemKindValue" },
-        variable = { glyph = "v", hl = "CmpItemKindVariable" },
-      }
-
-      require("blink.cmp").setup({
-        keymap = { preset = "default" },
-        appearance = {
-          nerd_font_variant = "mono",
-        },
-        completion = {
-          documentation = { auto_show = false },
-          menu = {
-            draw = {
-              components = {
-                kind_icon = {
-                  text = function(ctx)
-                    local kind = ctx.kind:lower()
-                    return (kind_icons[kind] or {}).glyph .. ctx.icon_gap
-                  end,
-                  highlight = function(ctx)
-                    local kind = ctx.kind:lower()
-                    return (kind_icons[kind] or {}).hl or "CmpItemKindText"
-                  end,
-                },
-              },
-            },
-          },
-        },
-        signature = { enabled = true },
-      })
-    end,
-    opts_extend = { "sources.default" },
   },
   {
     "seblyng/roslyn.nvim",
     enabled = profile == "home" or profile == "work",
-    ft = { "cs" },
-    dependencies = {
-      "j-hui/fidget.nvim",
-    },
+    ft = { "cs", "razor" },
     opts = {},
   },
-  {
-    "neovim/nvim-lspconfig",
-    dependencies = {
-      "mason-lspconfig.nvim",
-      "saghen/blink.cmp",
-      "j-hui/fidget.nvim",
-    },
-    keys = {
-      {
-        "<leader>lf",
-        function()
-          vim.lsp.buf.format()
-        end,
-        desc = "[l]SP [f]ormat",
-      },
-      {
-        "<leader>ll",
-        function()
-          vim.diagnostic.setloclist()
-        end,
-        desc = "Put [l]sp diagnostics to [l]ocation list",
-      },
-      {
-        "<leader>l<del>",
-        function()
-          vim.cmd("LspStop")
-          vim.diagnostic.reset()
-          vim.notify("Detached LSP servers")
-        end,
-        desc = "[de]tach [l]sp server",
-      },
-      {
-        "grd",
-        function()
-          vim.lsp.buf.definition()
-        end,
-        desc = "[G]o to [d]efiniton",
-      },
-      {
-        "grD",
-        function()
-          vim.lsp.buf.declaration()
-        end,
-        desc = "[G]o to [d]efiniton",
-      },
-      {
-        "gri",
-        function()
-          vim.lsp.buf.implementation()
-        end,
-        desc = "[G]o to [d]efiniton",
-      },
-    },
-    config = function()
-      vim.lsp.config("lua_ls", {
-        settings = {
-          Lua = {
-            format = {
-              enable = false,
-            },
-            diagnostics = { globals = { "vim" } },
-            telemetry = { enable = false },
-          },
-        },
-      })
 
-      vim.lsp.config("beancount", {
-        commands = { "beancount-language-server", "--stdio" },
-        root_markers = { "main.beancount", ".git" },
-        init_options = {
-          journal_file = "main.beancount",
-        },
-      })
-
-      vim.diagnostic.config({ virtual_text = true })
-    end,
-  },
   {
     "mfussenegger/nvim-dap",
     dependencies = {
@@ -816,7 +650,8 @@ require("lazy").setup({
       local cwd = vim.uv.cwd()
       local basename = vim.fs.basename(cwd)
       _99.setup({
-        model = "github-copilot/gpt-5.3-codex",
+        -- model = "github-copilot/gpt-5.3-codex",
+        model = "lmstudio/qwen/qwen3.6-35b-a3b",
         logger = {
           level = _99.DEBUG,
           path = "/tmp/99/" .. basename .. ".99.debug",
@@ -914,8 +749,77 @@ vim.filetype.add({
     bicep = "bicep",
     razor = "razor",
     cshtml = "razor",
+    bu = "yaml",
   },
 })
+
+-- Native LSP Server Configs (Neovim 0.12)
+vim.lsp.config("lua_ls", {
+  cmd = { "lua-language-server" },
+  filetypes = { "lua" },
+  root_markers = { ".luarc.json", ".luarc.jsonc", ".git" },
+  settings = {
+    Lua = {
+      format = { enable = false },
+      diagnostics = { globals = { "vim" } },
+      telemetry = { enable = false },
+      workspace = {
+        checkThirdParty = false,
+        library = { vim.env.VIMRUNTIME },
+      },
+    },
+  },
+})
+
+vim.lsp.config("beancount", {
+  cmd = { "beancount-language-server", "--stdio" },
+  filetypes = { "beancount" },
+  root_markers = { "main.beancount", ".git" },
+  init_options = {
+    journal_file = "main.beancount",
+  },
+})
+
+vim.lsp.config("eslint", {
+  cmd = { "vscode-eslint-language-server", "--stdio" },
+  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  root_markers = { ".eslintrc", ".eslintrc.js", ".eslintrc.json", "eslint.config.js", "eslint.config.mjs", ".git" },
+})
+
+vim.lsp.config("ts_ls", {
+  cmd = { "typescript-language-server", "--stdio" },
+  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
+})
+
+vim.lsp.config("yamlls", {
+  cmd = { "yaml-language-server", "--stdio" },
+  filetypes = { "yaml" },
+  root_markers = { ".git" },
+})
+
+vim.lsp.config("bicep", {
+  cmd = { "bicep-lsp" },
+  filetypes = { "bicep" },
+  root_markers = { "bicepconfig.json", ".git" },
+})
+
+vim.lsp.config("jsonls", {
+  cmd = { "vscode-json-language-server", "--stdio" },
+  filetypes = { "json", "jsonc" },
+  root_markers = { ".git" },
+})
+
+vim.diagnostic.config({ virtual_text = true })
+
+-- LSP keymaps
+vim.keymap.set("n", "<leader>lf", function()
+  vim.lsp.buf.format()
+end, { desc = "[l]SP [f]ormat" })
+
+vim.keymap.set("n", "<leader>ll", function()
+  vim.diagnostic.setloclist()
+end, { desc = "Put [l]sp diagnostics to [l]ocation list" })
 
 -- Key Maps
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
@@ -1025,6 +929,10 @@ vim.keymap.set("n", "[w", function()
   })
 end, { desc = "Next diagnostic error" })
 
+vim.keymap.set("n", "fu", function()
+  vim.cmd("Undotree")
+end, { desc = "[f]ind entry in native [u]ndo tree" })
+
 -- View git conflict markers
 vim.keymap.set("n", "<leader>lc", function()
   local ok, _ = pcall(vim.cmd, "vimgrep /^[<=>]\\{7\\}/ %")
@@ -1035,6 +943,24 @@ vim.keymap.set("n", "<leader>lc", function()
     vim.notify("No conflicts found", vim.log.levels.INFO)
   end
 end, { desc = "[l]ist [c]onflict markers" })
+
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(args)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    -- Enable native completion for this buffer
+    if client and client:supports_method("textDocument/completion") then
+      vim.lsp.completion.enable(
+        true,
+        args.data.client_id,
+        args.buf,
+        { autotrigger = true }
+      )
+    end
+    if client and client:supports_method("textDocument/inlayHint") then
+      vim.lsp.inlay_hint.enable(true, { bufnr = args.buf })
+    end
+  end,
+})
 
 if profile == "home" or profile == "work" then
   require("dotnet-tools").setup()
