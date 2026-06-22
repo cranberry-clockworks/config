@@ -11,8 +11,10 @@ local function check_dependency(exec)
 end
 
 -- Behaviours
-vim.opt.autocomplete = true
+vim.opt.autocomplete = false
 vim.opt.completeopt = { "menuone", "noinsert", "noselect" }
+vim.opt.wildoptions = { "pum", "fuzzy" }
+vim.opt.wildmode = "longest:full,full"
 vim.o.pumheight = 15
 
 vim.opt.splitright = true
@@ -97,29 +99,10 @@ local profile = os.getenv("NVIM_PROFILE") or "base"
 vim.g.profile = profile
 local profiles = {
   base = {
-    ts = {
-      "lua",
-      "markdown",
-      "markdown_inline",
-      "vimdoc",
-      "yaml",
-      "json",
-    },
     ls = {},
     tools = {},
   },
   home = {
-    ts = {
-      "lua",
-      "markdown",
-      "markdown_inline",
-      "vimdoc",
-      "yaml",
-      "json",
-      "c_sharp",
-      "beancount",
-      "make",
-    },
     ls = {
       "lua_ls",
     },
@@ -130,20 +113,6 @@ local profiles = {
     },
   },
   work = {
-    ts = {
-      "lua",
-      "markdown",
-      "markdown_inline",
-      "vimdoc",
-      "yaml",
-      "json",
-      "c_sharp",
-      "javascript",
-      "typescript",
-      "css",
-      "bicep",
-      "make",
-    },
     ls = {
       "lua_ls",
       "eslint",
@@ -184,22 +153,14 @@ require("lazy").setup({
     end,
   },
   {
-    "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate",
-    lazy = false,
-    opts = {
-      auto_install = true,
-      ensure_installed = profiles[profile].ts,
-      highlight = { enable = true },
-      indent = { enable = true },
-      incremental_selection = { enable = true },
-    },
-    config = function(_, opts)
-      require("nvim-treesitter.configs").setup(opts)
+    "romus204/tree-sitter-manager.nvim",
+    dependencies = {},
+    config = function()
+      require("tree-sitter-manager").setup({
+        auto_install = true,
+        nerdfont = false
+      })
     end,
-  },
-  {
-    "nvim-treesitter/nvim-treesitter-context",
   },
   {
     "tpope/vim-fugitive",
@@ -495,245 +456,6 @@ require("lazy").setup({
     ft = { "cs", "razor" },
     opts = {},
   },
-
-  {
-    "mfussenegger/nvim-dap",
-    dependencies = {
-      "nvim-neotest/nvim-nio",
-      "rcarriga/nvim-dap-ui",
-    },
-    enabled = profile == "home" or profile == "work",
-    config = function()
-      local dap = require("dap")
-      local ui = require("dapui")
-
-      ui.setup({
-        icons = {
-          expanded = "▾",
-          collapsed = "▸",
-          current_frame = "→",
-        },
-        controls = {
-          enabled = false,
-        },
-      })
-
-      dap.listeners.after.event_initialized["dapui_config"] = function()
-        ui.open({})
-      end
-      dap.listeners.before.event_terminated["dapui_config"] = function()
-        ui.close({})
-      end
-      dap.listeners.before.event_exited["dapui_config"] = function()
-        ui.close({})
-      end
-
-      dap.adapters.coreclr = {
-        -- To debug on mac, you need to use custom compiled debugger for arm64:
-        -- https://github.com/Cliffback/netcoredbg-macOS-arm64.nvim/releases
-        command = vim.fn.expand(
-          vim.fs.joinpath(vim.fn.stdpath("data"), "netcoredbg", "netcoredbg")
-        ),
-        type = "executable",
-        args = { "--interpreter=vscode" },
-      }
-
-      dap.configurations.cs = {
-        {
-          type = "coreclr",
-          name = "netcoredbg",
-          request = "launch",
-          program = function()
-            return vim.fn.exepath("dotnet")
-          end,
-          args = {
-            "run",
-            "--project",
-            "Laerdal.Web/Laerdal.Web.csproj",
-            "-c",
-            "Laerdal.Local",
-          },
-        },
-      }
-    end,
-    keys = {
-      {
-        "gdb",
-        function()
-          require("dap").toggle_breakpoint()
-        end,
-        desc = "Toggle [d]ebug [b]reakpoint",
-      },
-      {
-        "gdB",
-        function()
-          require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
-        end,
-        desc = "Toggle [d]ebug [b]reakpoint wiht condition",
-      },
-      {
-        "gdc",
-        function()
-          require("dap").continue()
-        end,
-        desc = "[d]ebug [c]ontinue",
-      },
-      {
-        "gdC",
-        function()
-          require("dap").run_last()
-        end,
-        desc = "[d]ebug run last",
-      },
-      {
-        "gdt",
-        function()
-          require("dap").terminate()
-        end,
-        desc = "[d]ebug [t]erminate",
-      },
-      {
-        "gds",
-        function()
-          require("dap").step_over()
-        end,
-        desc = "[d]ebug [s]tep over",
-      },
-      {
-        "gdi",
-        function()
-          require("dap").step_into()
-        end,
-        desc = "[d]ebug step [i]nto",
-      },
-      {
-        "gdo",
-        function()
-          require("dap").step_out()
-        end,
-        desc = "[d]ebug step [o]ut",
-      },
-      {
-        "gdr",
-        function()
-          require("dap").repl.open()
-        end,
-        desc = "[d]ebug open [r]epl",
-      },
-      {
-        "gdu",
-        function()
-          require("dapui").toggle()
-        end,
-        desc = "[d]ebug toggle [u]i",
-      },
-    },
-  },
-  {
-    "zbirenbaum/copilot.lua",
-    enabled = profile == "work",
-    lazy = false,
-    opts = {
-      suggestion = {
-        keymap = {
-          accept = "<C-0>",
-          next = "<C-e>",
-          dismiss = "<C-a>",
-        },
-      },
-      panel = { enabled = false },
-    },
-  },
-  {
-    "ThePrimeagen/99",
-    enabled = profile == "work",
-    config = function()
-      local _99 = require("99")
-      local cwd = vim.uv.cwd()
-      local basename = vim.fs.basename(cwd)
-      _99.setup({
-        -- model = "github-copilot/gpt-5.3-codex",
-        model = "lmstudio/qwen/qwen3.6-35b-a3b",
-        logger = {
-          level = _99.DEBUG,
-          path = "/tmp/99/" .. basename .. ".99.debug",
-          print_on_error = true,
-        },
-        tmp_dir = "./.tmp",
-        completion = {
-          custom_rules = {
-            "~/.config/nvim/skills/",
-          },
-          files = {},
-          source = "native",
-        },
-        md_files = {
-          "AGENT.md",
-        },
-      })
-      vim.keymap.set("v", "<leader>9v", function()
-        _99.visual()
-      end)
-      vim.keymap.set("n", "<leader>9x", function()
-        _99.stop_all_requests()
-      end)
-      vim.keymap.set("n", "<leader>9s", function()
-        _99.search()
-      end)
-    end,
-  },
-  {
-    "nvim-neotest/neotest",
-    dependencies = {
-      "nvim-neotest/nvim-nio",
-      "nvim-lua/plenary.nvim",
-      "antoinemadec/FixCursorHold.nvim",
-      "nvim-treesitter/nvim-treesitter",
-      "Issafalcon/neotest-dotnet",
-    },
-    enabled = profile == "home" or profile == "work",
-    opts = function()
-      return {
-        adapters = {
-          require("neotest-dotnet")({
-            dap = {
-              args = { justMyCode = false },
-              adapter_name = "coreclr",
-            },
-          }),
-        },
-      }
-    end,
-    keys = {
-      {
-        "<leader>tu",
-        function()
-          local nt = require("neotest")
-          nt.summary.toggle()
-          nt.output_panel.toggle()
-        end,
-        desc = "[t]oggle [t]est view",
-      },
-      {
-        "<leader>tr",
-        function()
-          local nt = require("neotest")
-          nt.output_panel.open()
-          nt.run.run()
-        end,
-        "[t]est [r]un current method",
-      },
-      {
-        "<leader>td",
-        function()
-          local nt = require("neotest")
-          nt.output_panel.close()
-          nt.run.run({ strategy = "dap" })
-        end,
-        "[t]est [d]ebug current method",
-      },
-    },
-  },
   {
     "folke/zen-mode.nvim",
     opts = {
@@ -756,6 +478,16 @@ vim.filetype.add({
 })
 
 -- Native LSP Server Configs (Neovim 0.12)
+vim.lsp.config("roslyn", {
+  settings = {
+    ["csharp|completion"] = {
+      dotnet_show_completion_items_from_unimported_namespaces = true,
+      dotnet_show_name_completion_suggestions = true,
+      dotnet_provide_regex_completions = true,
+    },
+  },
+})
+
 vim.lsp.config("lua_ls", {
   cmd = { "lua-language-server" },
   filetypes = { "lua" },
@@ -949,7 +681,7 @@ end, { desc = "[l]ist [c]onflict markers" })
 vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(args)
     local client = vim.lsp.get_client_by_id(args.data.client_id)
-    -- Enable native completion for this buffer
+
     if client and client:supports_method("textDocument/completion") then
       vim.lsp.completion.enable(
         true,
@@ -957,9 +689,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
         args.buf,
         { autotrigger = true }
       )
-    end
-    if client and client:supports_method("textDocument/inlayHint") then
-      vim.lsp.inlay_hint.enable(true, { bufnr = args.buf })
     end
   end,
 })
