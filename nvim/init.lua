@@ -689,6 +689,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         args.buf,
         { autotrigger = true }
       )
+      vim.bo[args.buf].autocomplete = true
     end
   end,
 })
