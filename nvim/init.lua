@@ -1,3 +1,4 @@
+-- Install tree-sitter-cli and modern git for all it to work
 vim.loader.enable()
 
 local function check_dependency(exec)
@@ -12,7 +13,8 @@ end
 
 -- Behaviours
 vim.opt.autocomplete = false
-vim.opt.completeopt = { "menuone", "noinsert", "noselect" }
+vim.opt.complete = { ".", "o" }
+vim.opt.completeopt = { "menuone", "noinsert", "noselect", "popup", "fuzzy" }
 vim.opt.wildoptions = { "pum", "fuzzy" }
 vim.opt.wildmode = "longest:full,full"
 vim.o.pumheight = 15
@@ -105,6 +107,7 @@ local profiles = {
   home = {
     ls = {
       "lua_ls",
+      "yamlls",
     },
     tools = {
       "stylua",
@@ -530,6 +533,25 @@ vim.lsp.config("yamlls", {
   cmd = { "yaml-language-server", "--stdio" },
   filetypes = { "yaml" },
   root_markers = { ".git" },
+  settings = {
+    redhat = {
+      telemetry = { enabled = false },
+    },
+    yaml = {
+      validate = true,
+      hover = true,
+      completion = true,
+      schemaDownload = { enable = true },
+      kubernetesVersion = "1.36.2",
+      schemaStore = {
+        enable = true,
+        url = "https://www.schemastore.org/api/json/catalog.json",
+      },
+      schemas = {
+        kubernetes = { "/*.yaml", "k8s/*.yaml" },
+      },
+    },
+  },
 })
 
 vim.lsp.config("bicep", {
