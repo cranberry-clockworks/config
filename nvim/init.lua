@@ -161,7 +161,7 @@ require("lazy").setup({
     config = function()
       require("tree-sitter-manager").setup({
         auto_install = true,
-        nerdfont = false
+        nerdfont = false,
       })
     end,
   },
@@ -519,13 +519,30 @@ vim.lsp.config("beancount", {
 
 vim.lsp.config("eslint", {
   cmd = { "vscode-eslint-language-server", "--stdio" },
-  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
-  root_markers = { ".eslintrc", ".eslintrc.js", ".eslintrc.json", "eslint.config.js", "eslint.config.mjs", ".git" },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+  },
+  root_markers = {
+    ".eslintrc",
+    ".eslintrc.js",
+    ".eslintrc.json",
+    "eslint.config.js",
+    "eslint.config.mjs",
+    ".git",
+  },
 })
 
 vim.lsp.config("ts_ls", {
   cmd = { "typescript-language-server", "--stdio" },
-  filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+  filetypes = {
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+  },
   root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
 })
 
@@ -548,11 +565,17 @@ vim.lsp.config("yamlls", {
         url = "https://www.schemastore.org/api/json/catalog.json",
       },
       schemas = {
-        kubernetes = { "/*.yaml", "k8s/*.yaml" },
+        kubernetes = {},
       },
     },
   },
 })
+
+vim.api.nvim_create_user_command("YamlSchemaK8s", function()
+  vim.api.nvim_buf_set_lines(0, 0, 0, false, {
+    "# yaml-language-server: $schema=https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.30.0-standalone-strict/all.json",
+  })
+end, { desc = "Insert Kubernetes schema comment at top of file" })
 
 vim.lsp.config("bicep", {
   cmd = { "bicep-lsp" },
@@ -564,6 +587,42 @@ vim.lsp.config("jsonls", {
   cmd = { "vscode-json-language-server", "--stdio" },
   filetypes = { "json", "jsonc" },
   root_markers = { ".git" },
+})
+
+vim.lsp.config("rust_analyzer", {
+  cmd = { "rust-analyzer" },
+  filetypes = { "rust" },
+  root_markers = { "Cargo.toml", "rust-project.json", ".git" },
+  settings = {
+    ["rust-analyzer"] = {
+      cargo = {
+        allFeatures = true,
+      },
+      checkOnSave = {
+        command = "clippy",
+      },
+    },
+  },
+})
+
+vim.lsp.config("gopls", {
+  cmd = { "gopls" },
+  filetypes = { "go", "gomod", "gowork", "gotmpl" },
+  root_markers = { "go.work", "go.mod", ".git" },
+  settings = {
+    gopls = {
+      gofumpt = true,
+      staticcheck = true,
+      usePlaceholders = true,
+      analyses = {
+        unusedparams = true,
+        nilness = true,
+      },
+    },
+    env = {
+      GOOS = "linux",
+    },
+  },
 })
 
 vim.diagnostic.config({ virtual_text = true })
