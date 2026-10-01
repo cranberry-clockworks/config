@@ -108,6 +108,7 @@ local profiles = {
     ls = {
       "lua_ls",
       "yamlls",
+      "html",
     },
     tools = {
       "stylua",
@@ -122,6 +123,7 @@ local profiles = {
       "bicep",
       "ts_ls",
       "yamlls",
+      "html",
     },
     tools = {
       "stylua",
@@ -186,6 +188,16 @@ require("lazy").setup({
     "kylechui/nvim-surround",
     event = "VeryLazy",
     opts = {},
+  },
+  {
+    "https://codeberg.org/andyg/leap.nvim",
+    lazy = false,
+    config = function()
+      vim.keymap.set({ "n", "x", "o" }, "s", "<Plug>(leap)", { desc = "Leap (bidirectional)" })
+      vim.keymap.set({ 'n', 'x', 'o' }, 'gs', '<Plug>(leap-visit)')
+      vim.keymap.set({ 'x', 'o' },      'ar', '<Plug>(leap-visit-text-object)')
+      vim.keymap.set({ 'x', 'o' },      'ir', '<Plug>(leap-visit-inner-text-object)')
+    end,
   },
   {
     "stevearc/oil.nvim",
@@ -467,6 +479,28 @@ require("lazy").setup({
       },
     },
   },
+  {
+    "zbirenbaum/copilot.lua",
+    enabled = profile == "work",
+    cmd = "Copilot",
+    event = "InsertEnter",
+    config = function()
+      require("copilot").setup({
+        panel = { enabled = false },
+        suggestion = {
+          enabled = true,
+          auto_trigger = false,
+          trigger_on_accept = false,
+          keymap = {
+            accept = "<C-l>",
+            next = "<C-a>",
+            prev = false,
+            dismiss = "<C-b>",
+          },
+        },
+      })
+    end,
+  },
 }, {
   lockfile = vim.fn.stdpath("config") .. "/lazy-lock-" .. profile .. ".json",
 })
@@ -474,8 +508,6 @@ require("lazy").setup({
 vim.filetype.add({
   extension = {
     bicep = "bicep",
-    razor = "razor",
-    cshtml = "razor",
     bu = "yaml",
   },
 })
@@ -586,6 +618,16 @@ vim.lsp.config("bicep", {
 vim.lsp.config("jsonls", {
   cmd = { "vscode-json-language-server", "--stdio" },
   filetypes = { "json", "jsonc" },
+  root_markers = { ".git" },
+})
+
+-- Required by roslyn.nvim razor cohosting: html requests from razor buffers
+-- are forwarded to a client named "html" on virtual *__virtual.html buffers.
+-- Without it, roslyn.nvim blocks the UI in vim.wait(5000) on every
+-- completion/hover in html regions of .cshtml files.
+vim.lsp.config("html", {
+  cmd = { "vscode-html-language-server", "--stdio" },
+  filetypes = { "html" },
   root_markers = { ".git" },
 })
 
@@ -778,3 +820,4 @@ vim.api.nvim_create_autocmd("LspAttach", {
 if profile == "home" or profile == "work" then
   require("dotnet-tools").setup()
 end
+
