@@ -148,13 +148,13 @@ require("lazy").setup({
     end,
   },
   {
-    "bluz71/vim-moonfly-colors",
+    "mcncl/alabaster.nvim",
     enabled = profile == "work" or profile == "home",
     lazy = false,
     priority = 1000,
     config = function()
       vim.o.background = "dark"
-      vim.cmd.colorscheme("moonfly")
+      vim.cmd.colorscheme("alabaster")
     end,
   },
   {
