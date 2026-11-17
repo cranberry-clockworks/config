@@ -148,13 +148,25 @@ require("lazy").setup({
     end,
   },
   {
-    "mcncl/alabaster.nvim",
+    "datsfilipe/vesper.nvim",
     enabled = profile == "work" or profile == "home",
     lazy = false,
     priority = 1000,
     config = function()
       vim.o.background = "dark"
-      vim.cmd.colorscheme("alabaster")
+      require('vesper').setup({
+          transparent = false,
+          italics = {
+              comments = true,
+              keywords = false,
+              functions = false,
+              strings = false,
+              variables = false,
+          },
+          overrides = {},
+          palette_overrides = {}
+      })
+      vim.cmd.colorscheme("vesper")
     end,
   },
   {
